@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Panel obsługi</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="container">
+    <nav class="topnav">
+      <a href="/" class="btn secondary">← Start</a>
+      <span class="muted">Panel obsługi</span>
+    </nav>
+
+    <section class="card">
+      <h2>Logowanie obsługi</h2>
+      <form id="adminLoginForm" class="form">
+        <div class="row">
+          <label>Hasło administratora
+            <input id="adminPass" type="password" placeholder="admin123" required />
+          </label>
+          <label>Data
+            <input id="adminDate" type="date" required />
+          </label>
+        </div>
+
+        <div class="row">
+          <div class="actions">
+            <button class="btn primary" type="submit">Załaduj dane</button>
+          </div>
+        </div>
+      </form>
+
+      <div id="adminMsg" class="result"></div>
+    </section>
+
+    <section class="card">
+      <h2>Stoliki</h2>
+      <div id="tablesGrid" class="tablesGrid"></div>
+      <p class="muted">Kliknij stolik, żeby przefiltrować listę rezerwacji.</p>
+    </section>
+
+    <section class="card">
+      <div class="row headerRow">
+        <h2>Rezerwacje</h2>
+        <button class="btn secondary" id="clearFilterBtn" type="button">Wyczyść filtr stolika</button>
+      </div>
+      <div id="reservationsList" class="list"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

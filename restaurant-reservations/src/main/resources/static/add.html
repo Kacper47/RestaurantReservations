@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dodaj rezerwację</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="container">
+    <nav class="topnav">
+      <a href="/" class="btn secondary">← Start</a>
+      <span class="muted">Dodaj rezerwację</span>
+    </nav>
+
+    <section class="card">
+      <h2>Formularz rezerwacji</h2>
+
+      <form id="addForm" class="form">
+        <div class="row">
+          <label>Imię i nazwisko (wymagane)
+            <input name="customerName" required placeholder="Jan Kowalski" />
+          </label>
+
+          <label>Telefon (wymagane)
+            <input name="phone" required />
+          </label>
+        </div>
+
+        <div class="row">
+          <label>Data (wymagane)
+            <input id="date" name="date" type="date" required />
+          </label>
+
+          <label>Godzina (wymagane)
+            <input id="time" name="time" type="time" required />
+          </label>
+        </div>
+
+        <div class="row">
+          <label>Liczba osób (wymagane)
+            <input name="guests" type="number" min="1" value="2" required />
+          </label>
+
+          <label>Stolik (wybierz najpierw datę i godzinę)
+            <select name="tableId" id="tableSelect" required></select>
+          </label>
+          <label>Typ spotkania
+            <input name="meetingType" placeholder="Biznesowe / Rocznicowe" />
+          </label>
+          <label>Dodatkowe uwagi
+            <input name="description"></input>
+          </label>
+        </div>
+
+        <button class="btn primary" type="submit">Zarezerwuj</button>
+      </form>
+
+      <div id="result" class="result"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

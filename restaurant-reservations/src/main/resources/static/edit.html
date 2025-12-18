@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Edytuj rezerwację</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="container">
+    <nav class="topnav">
+      <a href="/" class="btn secondary">← Start</a>
+      <span class="muted">Edytuj rezerwację</span>
+    </nav>
+
+    <section class="card">
+      <h2>Znajdź rezerwację</h2>
+
+      <form id="lookupForm" class="form">
+        <div class="row">
+          <label>Telefon
+            <input name="phone" required placeholder="500600700" />
+          </label>
+          <label>Kod rezerwacji
+            <input name="code" required placeholder="ABC123" />
+          </label>
+        </div>
+
+        <button class="btn primary" type="submit">Pokaż</button>
+      </form>
+
+      <div id="lookupResult" class="result"></div>
+    </section>
+
+    <section class="card" id="editCard" style="display:none;">
+      <h2>Edycja</h2>
+      <p class="muted">Zmień wybrane pola i zapisz. (Puste = bez zmian)</p>
+
+      <form id="editForm" class="form">
+        <div class="row">
+          <label>Nowa data
+            <input name="date" type="date" />
+          </label>
+          <label>Nowa godzina
+            <input name="time" type="time" />
+          </label>
+        </div>
+
+        <div class="row">
+          <label>Nowa liczba osób
+            <input name="guests" type="number" min="1" />
+          </label>
+          <label>Nowy stolik
+            <select name="tableId" id="editTableSelect"></select>
+          </label>
+        </div>
+
+        <div class="row">
+          <label>Typ spotkania
+            <input name="meetingType" placeholder="np. urodziny / biznes / randka" />
+          </label>
+          <label>Opis / dodatkowe informacje
+            <input name="description" maxlength="500" placeholder="np. krzesełko dla dziecka, alergie..." />
+          </label>
+        </div>
+
+      
+        <button class="btn primary" type="submit">Zapisz zmiany</button>
+        <button id="cancelBtn" class="btn danger" type="button" style="margin-top:12px;">
+          Odwołaj rezerwację
+        </button>
+      </form>
+
+      
+      
+
+      <div id="editResult" class="result"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

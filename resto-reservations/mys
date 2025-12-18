@@ -1,0 +1,3 @@
+#!/bin/sh
+# Komenda to uruchomienia mysql w terminalu
+docker exec -it resto-mysql mysql -uapp -papppass resto

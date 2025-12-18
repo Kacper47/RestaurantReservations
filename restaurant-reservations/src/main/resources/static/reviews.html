@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="pl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Opinie</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<main class="container">
+    <nav class="topnav">
+        <a href="/" class="btn secondary">← Start</a>
+        <span class="muted">Opinie</span>
+    </nav>
+
+    <section class="card">
+        <h2>Dodaj opinię</h2>
+        <form id="reviewForm" class="form">
+            <div class="row">
+                <label>Ocena (1–5)
+                    <input name="rate" type="number" min="1" max="5" value="5" required />
+                </label>
+                <label>Opis
+                    <input name="description" placeholder="Krótko i rzeczowo" />
+                </label>
+            </div>
+            <button class="btn primary" type="submit">Dodaj</button>
+        </form>
+        <div id="reviewMsg" class="result"></div>
+    </section>
+
+    <section class="card">
+        <h2>Lista opinii</h2>
+        <div id="reviewsList" class="list"></div>
+    </section>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

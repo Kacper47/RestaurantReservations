@@ -1,0 +1,23 @@
+# Java
+target/
+build/
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Env / sekrety
+.env
+*.env
+
+# Node 
+node_modules/
+dist/
+
+# Docker / baza 
+**/mysql_data/
+**/data/
+**/volumes/
+
