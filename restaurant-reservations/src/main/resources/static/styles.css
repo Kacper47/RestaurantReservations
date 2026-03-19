@@ -55,6 +55,7 @@ body {
 .form { display: grid; gap: 12px; }
 .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 640px) { .row { grid-template-columns: 1fr; } }
+.row{display: flex;}
 
 label { display: grid; gap: 6px; font-size: 14px; color: var(--muted); }
 input, select {
@@ -65,8 +66,29 @@ input, select {
   background: #0e141c;
   color: var(--text);
   outline: none;
+  margin-right: 30px;
 }
 input:focus, select:focus { border-color: rgba(76,141,255,.7); }
+.dateField {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+
+.datePickerBtn {
+  min-width: 46px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #0e141c;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.datePickerBtn:hover,
+.datePickerBtn:focus { border-color: rgba(76,141,255,.7); }
 
 .btn {
   border: 1px solid var(--line);
@@ -80,6 +102,8 @@ input:focus, select:focus { border-color: rgba(76,141,255,.7); }
 .btn.primary { background: rgba(76,141,255,.18); border-color: rgba(76,141,255,.45); }
 .btn.secondary { background: #111826; text-decoration: none;}
 .btn.danger { background: rgba(255,93,93,.14); border-color: rgba(255,93,93,.45); width: 100%; }
+
+
 
 .result { margin-top: 12px; font-size: 20px; color: var(--muted); }
 .result.ok { color: var(--ok); }
@@ -120,3 +144,14 @@ input:focus, select:focus { border-color: rgba(76,141,255,.7); }
   border-radius: 999px;
   padding: 4px 10px;
 }
+
+
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
+
+
+

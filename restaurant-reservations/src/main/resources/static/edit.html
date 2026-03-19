@@ -19,7 +19,7 @@
       <form id="lookupForm" class="form">
         <div class="row">
           <label>Telefon
-            <input name="phone" required placeholder="500600700" />
+            <input name="phone" required inputmode="numeric" maxlength="11" placeholder="123-456-789" />
           </label>
           <label>Kod rezerwacji
             <input name="code" required placeholder="ABC123" />
@@ -39,16 +39,19 @@
       <form id="editForm" class="form">
         <div class="row">
           <label>Nowa data
-            <input name="date" type="date" />
+            <div class="dateField">
+              <input name="date" id="editDate" type="date" />
+              <button type="button" class="datePickerBtn" data-date-target="editDate" aria-label="Wybierz datę">📅</button>
+            </div>
           </label>
           <label>Nowa godzina
-            <input name="time" type="time" />
+            <input name="time" id="editTime" type="time" />
           </label>
         </div>
 
         <div class="row">
           <label>Nowa liczba osób
-            <input name="guests" type="number" min="1" />
+            <input name="guests" id="editGuests" type="number" min="1" max="10" />
           </label>
           <label>Nowy stolik
             <select name="tableId" id="editTableSelect"></select>

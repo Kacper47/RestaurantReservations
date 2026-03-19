@@ -1,5 +1,7 @@
 function $(id) { return document.getElementById(id); }
 
+const LARGE_RESERVATION_MESSAGE = "Dla rezerwacji powyżej 10 osób prosimy o kontakt telefoniczny.";
+
 async function apiGet(url, headers = {}) {
   const r = await fetch(url, { headers });
   if (!r.ok) throw new Error(await r.text());
@@ -17,85 +19,41 @@ async function apiJson(method, url, body, headers = {}) {
   return r.json();
 }
 
-async function loadTablesIntoSelect(selectEl) {
-  const tables = await apiGet("/api/tables");
-  selectEl.innerHTML = "";
-  for (const t of tables) {
-    const opt = document.createElement("option");
-    opt.value = String(t.id);
-    opt.textContent = `Stolik #${t.id} (${t.seats} miejsc)`;
-    selectEl.appendChild(opt);
-  }
+function digitsOnly(value) {
+  return String(value ?? "").replace(/\D/g, "");
 }
 
-async function loadAvailableTables(selectEl) {
-  const date = document.getElementById("date").value;
-  const time = document.getElementById("time").value;
-
-  if (!date || !time) {
-    selectEl.innerHTML = "";
-    return;
-  }
-
-  const tables = await apiGet(`/api/tables/available?date=${date}&time=${time}`);
-  selectEl.innerHTML = "";
-
-  for (const t of tables) {
-    const opt = document.createElement("option");
-    opt.value = t.id;
-    opt.textContent = `Stolik #${t.id} (${t.seats} miejsc)`;
-    selectEl.appendChild(opt);
-  }
+function formatPhone(value) {
+  const digits = digitsOnly(value).slice(0, 9);
+  const parts = digits.match(/.{1,3}/g);
+  return parts ? parts.join("-") : "";
 }
 
-async function loadAvailableTablesIntoSelect() {
-  const dateEl = document.getElementById("date");
-  const timeEl = document.getElementById("time");
-  const tableEl = document.getElementById("tableSelect");
-
-  if (!dateEl || !timeEl || !tableEl) return;
-
-  async function refresh() {
-    const date = dateEl.value;
-    const time = timeEl.value;
-    if (!date || !time) return;
-
-    const url = `/api/tables/available?date=${encodeURIComponent(date)}&time=${encodeURIComponent(time)}`;
-    const res = await fetch(url);
-    if (!res.ok) {
-      console.error("tables/available failed", res.status);
-      return;
-    }
-
-    const tables = await res.json();
-    tableEl.innerHTML = "";
-
-    if (!tables.length) {
-      const opt = document.createElement("option");
-      opt.value = "";
-      opt.textContent = "Brak wolnych stolików";
-      tableEl.appendChild(opt);
-      tableEl.disabled = true;
-      return;
-    }
-
-    tableEl.disabled = false;
-    for (const t of tables) {
-      const opt = document.createElement("option");
-      opt.value = String(t.id);
-      opt.textContent = `Stolik #${t.id} (${t.seats} miejsc)`;
-      tableEl.appendChild(opt);
-    }
-  }
-
-  dateEl.addEventListener("change", refresh);
-  timeEl.addEventListener("change", refresh);
-
-  // jeśli data/godzina już są ustawione (np. domyślne), to od razu dociągnij
-  refresh().catch(console.error);
+function normalizePhoneForApi(value) {
+  return digitsOnly(value).slice(0, 9);
 }
 
-loadAvailableTablesIntoSelect();
+function attachPhoneFormatter(input) {
+  if (!input) return;
+  input.addEventListener("input", () => {
+    input.value = formatPhone(input.value);
+  });
+}
+
+function attachDatePickerButtons() {
+  document.querySelectorAll("[data-date-target]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const target = $(button.dataset.dateTarget);
+      if (!target) return;
+      if (typeof target.showPicker === "function") {
+        target.showPicker();
+        return;
+      }
+      target.focus();
+      target.click();
+    });
+  });
+}
 
 function setResult(el, ok, msg) {
   if (!el) return;
@@ -104,32 +62,122 @@ function setResult(el, ok, msg) {
   el.textContent = msg;
 }
 
+function validateGuestsInput(input, resultEl) {
+  if (!input || !input.value) {
+    return true;
+  }
+
+  const guests = Number(input.value);
+  if (Number.isFinite(guests) && guests <= 10) {
+    input.setCustomValidity("");
+    return true;
+  }
+
+  input.setCustomValidity(LARGE_RESERVATION_MESSAGE);
+  input.reportValidity();
+  setResult(resultEl, false, LARGE_RESERVATION_MESSAGE);
+  return false;
+}
+
+function renderTableOptions(selectEl, tables, emptyMessage, includeNoChange = false, currentTableId = null) {
+  selectEl.innerHTML = "";
+
+  if (includeNoChange) {
+    const emptyOpt = document.createElement("option");
+    emptyOpt.value = "";
+    emptyOpt.textContent = currentTableId ? `(bez zmiany, obecnie #${currentTableId})` : "(bez zmiany)";
+    selectEl.appendChild(emptyOpt);
+  }
+
+  if (!tables.length) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = emptyMessage;
+    selectEl.appendChild(opt);
+    selectEl.disabled = true;
+    return;
+  }
+
+  selectEl.disabled = false;
+  for (const t of tables) {
+    const opt = document.createElement("option");
+    opt.value = String(t.id);
+    opt.textContent = `Stolik #${t.id} (${t.seats} miejsc)`;
+    selectEl.appendChild(opt);
+  }
+}
+
+async function loadTablesIntoSelect(selectEl) {
+  const tables = await apiGet("/api/tables");
+  renderTableOptions(selectEl, tables, "Brak stolików");
+}
+
+async function fetchAvailableTables({ date, time, guests }) {
+  if (!date || !time || !guests || guests > 10) {
+    return [];
+  }
+
+  const url = `/api/tables/available?date=${encodeURIComponent(date)}&time=${encodeURIComponent(time)}&guests=${encodeURIComponent(guests)}`;
+  return apiGet(url);
+}
+
+async function loadAvailableTables(selectEl) {
+  const date = $("date")?.value;
+  const time = $("time")?.value;
+  const guests = Number(document.querySelector('#addForm [name="guests"]')?.value || "0");
+
+  if (!date || !time || !guests || guests > 10) {
+    selectEl.innerHTML = "";
+    selectEl.disabled = true;
+    return;
+  }
+
+  const tables = await fetchAvailableTables({ date, time, guests });
+  renderTableOptions(selectEl, tables, "Brak wolnych stolików");
+}
+
 function initAddPage() {
   const form = $("addForm");
   if (!form) return;
 
-  const result = document.getElementById("result");
+  const result = $("result");
+  const select = $("tableSelect");
+  const dateEl = $("date");
+  const timeEl = $("time");
+  const phoneEl = form.elements.phone;
+  const guestsEl = form.elements.guests;
 
-  const select = document.getElementById("tableSelect");
-  const dateEl = document.getElementById("date");
-  const timeEl = document.getElementById("time");
+  attachPhoneFormatter(phoneEl);
 
-  dateEl.addEventListener("change", () => loadAvailableTables(select));
-  timeEl.addEventListener("change", () => loadAvailableTables(select));
+  const refreshTables = () => loadAvailableTables(select).catch(console.error);
+
+  dateEl.addEventListener("change", refreshTables);
+  timeEl.addEventListener("change", refreshTables);
+  guestsEl.addEventListener("input", () => {
+    if (validateGuestsInput(guestsEl, result)) {
+      refreshTables();
+    }
+  });
+
+  refreshTables();
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     try {
+      if (!validateGuestsInput(guestsEl, result)) return;
+
       const data = Object.fromEntries(new FormData(form));
       data.guests = Number(data.guests);
+      data.phone = normalizePhoneForApi(data.phone);
       data.tableId = Number(data.tableId);
 
       const created = await apiJson("POST", "/api/reservations", data);
       setResult(result, true, `Rezerwacja utworzona. Kod: ${created.code}`);
       form.reset();
-      loadAvailableTables(select);
+      select.innerHTML = "";
+      select.disabled = true;
     } catch (err) {
-      setResult(result, false, "Błąd");
+      setResult(result, false, err.message || "Błąd");
     }
   });
 }
@@ -144,37 +192,76 @@ function initEditPage() {
   const editForm = $("editForm");
   const editResult = $("editResult");
   const editSelect = $("editTableSelect");
+  const lookupPhoneEl = lookupForm.elements.phone;
+  const editDateEl = $("editDate");
+  const editTimeEl = $("editTime");
+  const editGuestsEl = $("editGuests");
 
   let currentPhone = null;
   let currentCode = null;
+  let currentReservation = null;
 
-  loadTablesIntoSelect(editSelect).catch(() => { /* ok */ });
-  // opcja "bez zmiany stolika"
-  const emptyOpt = document.createElement("option");
-  emptyOpt.value = "";
-  emptyOpt.textContent = "(bez zmiany)";
-  editSelect.insertBefore(emptyOpt, editSelect.firstChild);
+  attachPhoneFormatter(lookupPhoneEl);
+
+  loadTablesIntoSelect(editSelect).catch(() => {});
+  renderTableOptions(editSelect, [], "Brak pasujących stolików", true);
+
+  async function refreshEditTables() {
+    if (!currentReservation) return;
+
+    const guestsValue = editGuestsEl.value ? Number(editGuestsEl.value) : Number(currentReservation.guests);
+    if (editGuestsEl.value && !validateGuestsInput(editGuestsEl, editResult)) {
+      return;
+    }
+
+    const date = editDateEl.value || currentReservation.date;
+    const time = editTimeEl.value || currentReservation.time;
+    const tables = await fetchAvailableTables({ date, time, guests: guestsValue });
+    const currentTable = currentReservation.table;
+    const currentIncluded = currentTable && tables.some((t) => t.id === currentTable.id);
+    const mergedTables = currentIncluded || !currentTable ? tables : [currentTable, ...tables];
+
+    renderTableOptions(
+      editSelect,
+      mergedTables,
+      "Brak pasujących wolnych stolików",
+      true,
+      currentTable?.id ?? null
+    );
+    editSelect.value = "";
+  }
+
+  editDateEl?.addEventListener("change", () => refreshEditTables().catch(console.error));
+  editTimeEl?.addEventListener("change", () => refreshEditTables().catch(console.error));
+  editGuestsEl?.addEventListener("input", () => refreshEditTables().catch(console.error));
 
   lookupForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     try {
       const data = Object.fromEntries(new FormData(lookupForm));
-      const r = await apiGet(`/api/reservations/lookup?phone=${encodeURIComponent(data.phone)}&code=${encodeURIComponent(data.code)}`);
+      const normalizedPhone = normalizePhoneForApi(data.phone);
+      const r = await apiGet(`/api/reservations/lookup?phone=${encodeURIComponent(normalizedPhone)}&code=${encodeURIComponent(data.code)}`);
 
-      currentPhone = data.phone;
+      currentPhone = normalizedPhone;
       currentCode = data.code;
+      currentReservation = r;
 
-      setResult(lookupResult, true,
-        `Znaleziono: 
+      setResult(
+        lookupResult,
+        true,
+        `Znaleziono:
         Data: ${r.date},
         Godzina: ${r.time},
         Ilość osób: ${r.guests},
         Stolik: #${r.table?.id} (${r.table?.seats}os),
         Typ: ${r.meetingType},
-        Uwagi: ${r.description}
-        `);
+        Uwagi: ${r.description}`
+      );
       editCard.style.display = "block";
+      editForm.reset();
+      refreshEditTables().catch(console.error);
     } catch (err) {
+      currentReservation = null;
       editCard.style.display = "none";
       setResult(lookupResult, false, "Nie znaleziono rezerwacji - podano błędne dane");
     }
@@ -183,6 +270,8 @@ function initEditPage() {
   editForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     try {
+      if (!validateGuestsInput(editGuestsEl, editResult)) return;
+
       const data = Object.fromEntries(new FormData(editForm));
       const payload = {
         phone: currentPhone,
@@ -194,19 +283,24 @@ function initEditPage() {
         meetingType: data.meetingType ? data.meetingType.trim() : null,
         description: data.description ? data.description.trim() : null
       };
+
       const updated = await apiJson("PUT", "/api/reservations/edit", payload);
-      setResult(editResult, true,
-        `Zmieniono: 
+      currentReservation = updated;
+      setResult(
+        editResult,
+        true,
+        `Zmieniono:
         Data: ${updated.date},
         Godzina: ${updated.time},
         Ilość osób: ${updated.guests},
         Stolik: #${updated.table?.id} (${updated.table?.seats}os),
         Typ: ${updated.meetingType},
-        Uwagi: ${updated.description}
-        `);
+        Uwagi: ${updated.description}`
+      );
       editForm.reset();
+      refreshEditTables().catch(console.error);
     } catch (err) {
-      setResult(editResult, false, "Błąd");
+      setResult(editResult, false, err.message || "Błąd");
     }
   });
 
@@ -241,8 +335,6 @@ function initAdminPage() {
   const msgEl = $("adminMsg");
   const tablesGrid = $("tablesGrid");
   const resList = $("reservationsList");
-  const createTableBtn = $("createTableBtn");
-  const newTableSeats = $("newTableSeats");
   const clearFilterBtn = $("clearFilterBtn");
 
   let selectedTableId = null;
@@ -267,11 +359,9 @@ function initAdminPage() {
   }
 
   function renderReservations(reservations) {
-    console.log("BEFORE LOOP");
-
     resList.innerHTML = "";
     const filtered = selectedTableId
-      ? reservations.filter(r => r.table && r.table.id === selectedTableId)
+      ? reservations.filter((r) => r.table && r.table.id === selectedTableId)
       : reservations;
 
     if (filtered.length === 0) {
@@ -279,30 +369,17 @@ function initAdminPage() {
       return;
     }
 
-
     for (const r of filtered) {
-      const customerName =
-        (r.customerName && r.customerName.trim()) ||
-        (r.customer?.name && r.customer.name.trim()) ||
-        "—";
-
-      const phone =
-        (r.customerPhone && String(r.customerPhone).trim()) ||
-        (r.customer?.phone && String(r.customer.phone).trim()) ||
-        "—";
-      const tableId = r.table?.id ?? r.tableId ?? "—";
+      const tableId = r.table?.id ?? r.tableId ?? "-";
 
       const item = document.createElement("div");
       item.className = "item";
-
-      console.log("RES", r);
-
       item.innerHTML = `
         <div class="itemHead">
           <div>
             <div><span class="badge">${r.status}</span></div>
             <div class="muted">
-              Kod: ${r.code} • Data: ${r.date} • Godzina: ${String(r.time).slice(0,5)} • Stolik #${tableId} • Osoby: ${r.guests}
+              Kod: ${r.code} • Data: ${r.date} • Godzina: ${String(r.time).slice(0, 5)} • Stolik #${tableId} • Osoby: ${r.guests}
             </div>
           </div>
           <button class="btn danger js-cancel" ${r.status === "CANCELED" ? "disabled" : ""}>Anuluj</button>
@@ -310,9 +387,8 @@ function initAdminPage() {
       `;
 
       item.querySelector(".js-cancel")?.addEventListener("click", async () => {
-        await cancelReservation(r.id);
-        // po anulowaniu: odśwież listę (najprościej)
-        await loadReservationsForSelectedDate(); // <- podmień na Twoją funkcję odświeżania
+        await fetch(`/api/reservations/${r.id}`, { method: "DELETE" });
+        await loadAdminData();
       });
 
       resList.appendChild(item);
@@ -327,26 +403,22 @@ function initAdminPage() {
         return;
       }
 
-    const tables = await apiGet("/api/tables");
-    renderTables(tables);
+      const tables = await apiGet("/api/tables");
+      renderTables(tables);
 
-    const raw = await apiGet(`/api/admin/reservations?date=${encodeURIComponent(date)}`, adminHeaders());
-    const reservations = Array.isArray(raw) ? raw : (raw.items ?? raw.content ?? []);
-    renderReservations(reservations);
-        
-        
-      const code = passEl.value;
-          
+      const raw = await apiGet(`/api/admin/reservations?date=${encodeURIComponent(date)}`, adminHeaders());
+      const reservations = Array.isArray(raw) ? raw : (raw.items ?? raw.content ?? []);
+      renderReservations(reservations);
+
       let hello = "";
       try {
-        const me = await apiGet(`/api/staff/login?code=${encodeURIComponent (code)}`);
+        const me = await apiGet(`/api/staff/login?code=${encodeURIComponent(passEl.value)}`);
         hello = `Witaj, ${me.role} ${me.name}. `;
       } catch (_) {
-        // nie ma w staff -> traktuj jako admin
       }
-    
-    const baseMsg = selectedTableId ? `Filtr stolika: #${selectedTableId}` : "Załadowano dane.";
-    setResult(msgEl, true, `${hello}${baseMsg}`);
+
+      const baseMsg = selectedTableId ? `Filtr stolika: #${selectedTableId}` : "Załadowano dane.";
+      setResult(msgEl, true, `${hello}${baseMsg}`);
     } catch (err) {
       setResult(msgEl, false, "Błąd (czy hasło jest poprawne?)");
     }
@@ -358,23 +430,11 @@ function initAdminPage() {
     loadAdminData().catch(() => {});
   });
 
-  clearFilterBtn.addEventListener("click", () => {
+  clearFilterBtn?.addEventListener("click", () => {
     selectedTableId = null;
     loadAdminData().catch(() => {});
   });
 
-  // createTableBtn.addEventListener("click", async () => {
-  //   try {
-  //     const seats = Number(newTableSeats.value || "4");
-  //     await apiJson("POST", "/api/tables", { seats });
-  //     await loadAdminData();
-  //     setResult(msgEl, true, "Dodano stolik.");
-  //   } catch (err) {
-  //     setResult(msgEl, false, "Błąd dodania stolika: " + String(err));
-  //   }
-  // });
-
-  // ustawia domyślną datę na dziś
   if (!dateEl.value) {
     const d = new Date();
     const iso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
@@ -383,11 +443,11 @@ function initAdminPage() {
 }
 
 function initReviewsPage() {
-  const form = document.getElementById("reviewForm");
+  const form = $("reviewForm");
   if (!form) return;
 
-  const msg = document.getElementById("reviewMsg");
-  const list = document.getElementById("reviewsList");
+  const msg = $("reviewMsg");
+  const list = $("reviewsList");
 
   async function load() {
     const reviews = await apiGet("/api/reviews");
@@ -419,8 +479,12 @@ function initReviewsPage() {
 
   load().catch(() => {});
 }
-initReviewsPage();
 
+
+
+
+attachDatePickerButtons();
+initReviewsPage();
 initAddPage();
 initEditPage();
 initAdminPage();

@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Dodaj rezerwację</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=2" />
 </head>
 <body>
   <main class="container">
@@ -23,25 +23,28 @@
           </label>
 
           <label>Telefon (wymagane)
-            <input name="phone" required />
+            <input name="phone" required inputmode="numeric" maxlength="11" placeholder="123-456-789" />
           </label>
         </div>
 
         <div class="row">
           <label>Data (wymagane)
-            <input id="date" name="date" type="date" required />
+            <div class="dateField">
+              <input id="date" name="date" type="date" required />
+            </div>
           </label>
 
           <label>Godzina (wymagane)
             <input id="time" name="time" type="time" required />
           </label>
+
+        
+          <label>Liczba osób (wymagane)
+            <input name="guests" type="number" id="guests" min="1" max="10" value="2" required />
+          </label>
         </div>
 
         <div class="row">
-          <label>Liczba osób (wymagane)
-            <input name="guests" type="number" min="1" value="2" required />
-          </label>
-
           <label>Stolik (wybierz najpierw datę i godzinę)
             <select name="tableId" id="tableSelect" required></select>
           </label>
