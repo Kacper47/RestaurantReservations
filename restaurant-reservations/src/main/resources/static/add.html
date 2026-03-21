@@ -1,68 +1,78 @@
 <!doctype html>
-<html lang="pl">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Dodaj rezerwację</title>
-  <link rel="stylesheet" href="styles.css?v=2" />
+  <title>Add Reservation</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <main class="container">
     <nav class="topnav">
-      <a href="/" class="btn secondary">← Start</a>
-      <span class="muted">Dodaj rezerwację</span>
+      <a href="/guest.html" class="btn secondary">Back</a>
+      <span class="muted">Add Reservation</span>
     </nav>
 
     <section class="card">
-      <h2>Formularz rezerwacji</h2>
+      <h2>Reservation Form</h2>
 
       <form id="addForm" class="form">
         <div class="row">
-          <label>Imię i nazwisko (wymagane)
-            <input name="customerName" required placeholder="Jan Kowalski" />
+          <label>Full Name (required)
+            <input name="customerName" required placeholder="John Smith" />
           </label>
 
-          <label>Telefon (wymagane)
+          <label>Phone (required)
             <input name="phone" required inputmode="numeric" maxlength="11" placeholder="123-456-789" />
           </label>
         </div>
 
         <div class="row">
-          <label>Data (wymagane)
-            <div class="dateField">
-              <input id="date" name="date" type="date" required />
-            </div>
+          <label>Date (required)
+            <input id="date" name="date" type="date" required />
           </label>
 
-          <label>Godzina (wymagane)
-            <input id="time" name="time" type="time" required />
+          <label>Time (required)
+            <input id="time" name="time" type="time" step="900" required />
           </label>
 
-        
-          <label>Liczba osób (wymagane)
+          <label>Guests (required)
             <input name="guests" type="number" id="guests" min="1" max="10" value="2" required />
           </label>
         </div>
 
         <div class="row">
-          <label>Stolik (wybierz najpierw datę i godzinę)
+          <label>Table
             <select name="tableId" id="tableSelect" required></select>
           </label>
-          <label>Typ spotkania
-            <input name="meetingType" placeholder="Biznesowe / Rocznicowe" />
+
+          <label>Meeting Type
+            <input name="meetingType" placeholder="Business / Anniversary" />
           </label>
-          <label>Dodatkowe uwagi
-            <input name="description"></input>
+
+          <label>Additional Notes
+            <input name="description" maxlength="500" />
           </label>
         </div>
 
-        <button class="btn primary" type="submit">Zarezerwuj</button>
+        <div class="tablePlanWrap">
+          <div class="planHeader">
+            <h3>Table Plan</h3>
+            <p class="muted">Click an available table to select it.</p>
+          </div>
+          <div id="bookingTablePlan" class="tablesGrid tablePlan"></div>
+        </div>
+
+        <button class="btn primary" type="submit">Reserve</button>
       </form>
 
       <div id="result" class="result"></div>
     </section>
   </main>
 
+  <script src="core.js"></script>
+  <script src="public-pages.js"></script>
+  <script src="admin-page.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

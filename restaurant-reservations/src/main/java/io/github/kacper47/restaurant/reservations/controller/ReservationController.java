@@ -9,21 +9,20 @@ import io.github.kacper47.restaurant.reservations.repository.ReservationReposito
 import io.github.kacper47.restaurant.reservations.repository.RestaurantTableRepository;
 import io.github.kacper47.restaurant.reservations.repository.ReviewRepository;
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Comparator;
 import java.util.List;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -35,17 +34,15 @@ import org.springframework.web.server.ResponseStatusException;
 public class ReservationController {
 
     private static final String LARGE_RESERVATION_MESSAGE =
-            "Dla rezerwacji powyżej 10 osób prosimy o kontakt telefoniczny.";
+            "For reservations above 10 guests, please contact us by phone.";
+    private static final String ACTIVE_STATUS = "ACTIVE";
+    private static final int TABLE_BLOCK_MINUTES = 120;
+    private static final String CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
     private final ReservationRepository reservationRepository;
     private final RestaurantTableRepository tableRepository;
     private final ReviewRepository reviewRepository;
     private final CustomerRepository customerRepository;
-
-    @Value("${app.admin.password}")
-    private String adminPassword;
-
-    private static final String CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private final SecureRandom rng = new SecureRandom();
 
     public ReservationController(ReservationRepository reservationRepository,
@@ -78,13 +75,21 @@ public class ReservationController {
     public List<RestaurantTable> availableTables(@RequestParam LocalDate date,
                                                  @RequestParam LocalTime time,
                                                  @RequestParam(required = false) Integer guests) {
-        List<Long> busy = reservationRepository.findBusyTableIds(date, time);
-        return tableRepository.findAll().stream()
+        validateQuarterHour(time);
+
+        List<RestaurantTable> free = tableRepository.findAll().stream()
                 .filter(RestaurantTable::isAvailable)
-                .filter(t -> !busy.contains(t.getId()))
                 .filter(t -> guests == null || guests <= 0 || t.getSeats() >= guests)
+                .filter(t -> !hasConflict(t.getId(), date, time, null))
                 .sorted(Comparator.comparingInt(RestaurantTable::getSeats).thenComparing(RestaurantTable::getId))
                 .toList();
+
+        if (guests == null || guests <= 0 || free.isEmpty()) {
+            return free;
+        }
+
+        int bestSeats = free.stream().mapToInt(RestaurantTable::getSeats).min().orElse(Integer.MAX_VALUE);
+        return free.stream().filter(t -> t.getSeats() == bestSeats).toList();
     }
 
     @Transactional
@@ -98,7 +103,7 @@ public class ReservationController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Table not found: " + req.tableId));
 
         if (req.guests > table.getSeats()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Wybrany stolik jest za mały dla tej liczby gości");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The selected table is too small for this number of guests");
         }
 
         Customer customer = customerRepository.findByPhone(normalizedPhone)
@@ -118,18 +123,16 @@ public class ReservationController {
         r.setCustomer(customer);
         r.setDate(LocalDate.parse(req.date));
         r.setTime(LocalTime.parse(req.time));
+        validateQuarterHour(r.getTime());
         r.setGuests(req.guests);
         r.setTable(table);
-        r.setStatus("ACTIVE");
+        r.setStatus(ACTIVE_STATUS);
         r.setMeetingType(req.meetingType);
         r.setDescription(req.description);
         r.setCode(generateUniqueCode());
 
-        boolean conflict = reservationRepository.existsByTableIdAndDateAndTime(
-                table.getId(), r.getDate(), r.getTime()
-        );
-        if (conflict) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Stolik zajęty w tym terminie");
+        if (hasConflict(table.getId(), r.getDate(), r.getTime(), null)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Table is already reserved in this time slot (2-hour block)");
         }
 
         return reservationRepository.save(r);
@@ -184,48 +187,42 @@ public class ReservationController {
         Reservation r = reservationRepository.findByCodeAndCustomerPhone(req.code, normalizePhone(req.phone))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reservation not found"));
 
+        LocalDate effectiveDate = r.getDate();
+        LocalTime effectiveTime = r.getTime();
+        RestaurantTable effectiveTable = r.getTable();
+        int effectiveGuests = r.getGuests();
+
         if (req.date != null && !req.date.isBlank()) {
-            r.setDate(LocalDate.parse(req.date));
+            effectiveDate = LocalDate.parse(req.date);
         }
         if (req.time != null && !req.time.isBlank()) {
-            r.setTime(LocalTime.parse(req.time));
+            effectiveTime = LocalTime.parse(req.time);
+            validateQuarterHour(effectiveTime);
         }
-
         if (req.guests > 0) {
             validateGuests(req.guests);
+            effectiveGuests = req.guests;
         }
-
         if (req.tableId != null) {
-            RestaurantTable table = tableRepository.findById(req.tableId)
+            effectiveTable = tableRepository.findById(req.tableId)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Table not found: " + req.tableId));
+        }
 
-            int effectiveGuests = req.guests > 0 ? req.guests : r.getGuests();
-            if (effectiveGuests > table.getSeats()) {
-                throw new ResponseStatusException(
-                        HttpStatus.BAD_REQUEST,
-                        "Too many guests for this table (seats=" + table.getSeats() + ", guests=" + effectiveGuests + ")"
-                );
-            }
-
-            boolean conflict = reservationRepository.existsByTableIdAndDateAndTime(
-                    table.getId(), r.getDate(), r.getTime()
+        if (effectiveGuests > effectiveTable.getSeats()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Too many guests for current table (seats=" + effectiveTable.getSeats() + ", guests=" + effectiveGuests + ")"
             );
-            if (conflict && !table.getId().equals(r.getTable().getId())) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Stolik zajęty w tym terminie");
-            }
-
-            r.setTable(table);
         }
 
-        if (req.guests > 0) {
-            if (req.guests > r.getTable().getSeats()) {
-                throw new ResponseStatusException(
-                        HttpStatus.BAD_REQUEST,
-                        "Too many guests for current table (seats=" + r.getTable().getSeats() + ", guests=" + req.guests + ")"
-                );
-            }
-            r.setGuests(req.guests);
+        if (hasConflict(effectiveTable.getId(), effectiveDate, effectiveTime, r.getId())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Table is already reserved in this time slot (2-hour block)");
         }
+
+        r.setDate(effectiveDate);
+        r.setTime(effectiveTime);
+        r.setGuests(effectiveGuests);
+        r.setTable(effectiveTable);
 
         if (req.meetingType != null && !req.meetingType.isBlank()) {
             r.setMeetingType(req.meetingType);
@@ -250,12 +247,6 @@ public class ReservationController {
         return reviewRepository.findAll(Sort.by(Sort.Direction.DESC, "id"));
     }
 
-    private void requireAdmin(String pass) {
-        if (pass == null || !pass.equals(adminPassword)) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid admin password");
-        }
-    }
-
     private String generateCode() {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < 6; i++) {
@@ -276,22 +267,40 @@ public class ReservationController {
 
     private String normalizePhone(String phone) {
         if (phone == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Telefon jest wymagany");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Phone number is required");
         }
         String normalized = phone.replaceAll("\\D", "");
         if (normalized.length() != 9) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Telefon musi mieć dokładnie 9 cyfr");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Phone number must contain exactly 9 digits");
         }
         return normalized;
     }
 
     private void validateGuests(int guests) {
         if (guests < 1) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Liczba gości musi być większa od zera");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Number of guests must be greater than zero");
         }
         if (guests > 10) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, LARGE_RESERVATION_MESSAGE);
         }
+    }
+
+    private void validateQuarterHour(LocalTime time) {
+        int minutes = time.getMinute();
+        if (minutes % 15 != 0 || time.getSecond() != 0 || time.getNano() != 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Time must be in 15-minute intervals (00, 15, 30, 45)");
+        }
+    }
+
+    private boolean hasConflict(Long tableId, LocalDate date, LocalTime requestedTime, Long ignoredReservationId) {
+        List<Reservation> sameDayReservations =
+                reservationRepository.findByTableIdAndDateAndStatus(tableId, date, ACTIVE_STATUS);
+
+        return sameDayReservations.stream()
+                .filter(existing -> ignoredReservationId == null || !existing.getId().equals(ignoredReservationId))
+                .map(Reservation::getTime)
+                .anyMatch(existingTime ->
+                        Duration.between(existingTime, requestedTime).abs().toMinutes() < TABLE_BLOCK_MINUTES);
     }
 
     public static class CancelReservationRequest {

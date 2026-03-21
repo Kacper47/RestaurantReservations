@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Reservations - Guest Panel</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="container">
+    <nav class="topnav">
+      <a id="guestBackBtn" href="/" class="btn secondary">Back</a>
+      <span class="muted">Guest Panel</span>
+      <span id="accountBadge" class="accountBadge hidden"></span>
+    </nav>
+
+    <section class="grid3">
+      <a class="card linkcard" href="/edit.html">
+        <h2>Edit Reservation</h2>
+        <p>Update details, date, time, or cancel.</p>
+      </a>
+
+      <a class="card linkcard" href="/add.html">
+        <h2>Add Reservation</h2>
+        <p>Open the reservation form.</p>
+      </a>
+
+      <a class="card linkcard" href="/reviews.html">
+        <h2>Add Review</h2>
+        <p>Leave your rating and a short comment.</p>
+      </a>
+
+      <a id="adminPanelCard" class="card linkcard adminLinkcard hidden" href="/admin.html" aria-hidden="true">
+        <h2>Administrator Panel</h2>
+        <p>Manage table plan and daily reservations.</p>
+      </a>
+    </section>
+  </main>
+
+  <script src="core.js"></script>
+  <script src="public-pages.js"></script>
+  <script src="admin-page.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

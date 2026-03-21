@@ -5,13 +5,17 @@ import io.github.kacper47.restaurant.reservations.entity.RestaurantTable;
 import io.github.kacper47.restaurant.reservations.repository.ReservationRepository;
 import io.github.kacper47.restaurant.reservations.repository.RestaurantTableRepository;
 import io.github.kacper47.restaurant.reservations.repository.StaffRepository;
-
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
-
 import java.time.LocalDate;
 import java.util.List;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api")
@@ -29,31 +33,26 @@ public class AdminController {
         this.staffRepository = staffRepository;
     }
 
-    // ====== "Logowanie" po kodzie (mega proste) ======
-    // GET /api/staff/login?code=1234  -> { "role":"Kelner", "name":"Łukasz" }
     @GetMapping("/staff/login")
-    public StaffDto staffLogin(@RequestParam String code) {
+    public StaffDto staffLogin(@RequestParam String code,
+                               @RequestParam(required = false) String name) {
+        String normalizedName = name == null ? null : name.trim();
         return staffRepository.findByCode(code)
+                .filter(s -> normalizedName == null || s.getName().equalsIgnoreCase(normalizedName))
                 .map(s -> new StaffDto(s.getRole(), s.getName()))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Bad code"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Bad code or name"));
     }
 
     public record StaffDto(String role, String name) {}
 
-    // ====== Stoliki ======
-    // GET /api/admin/tables
     @GetMapping("/admin/tables")
     public List<RestaurantTable> tables() {
         return tableRepository.findAll();
     }
 
-    // ====== Rezerwacje na dzień (z klientem -> bez undefined) ======
-    // GET /api/admin/reservations?date=2025-12-20
     @GetMapping("/admin/reservations")
     public List<AdminReservationDto> reservationsByDate(@RequestParam String date) {
         LocalDate d = LocalDate.parse(date);
-
-        // potrzebujesz w ReservationRepository: findByDate(d)
         List<Reservation> list = reservationRepository.findByDate(d);
 
         return list.stream().map(r -> new AdminReservationDto(
@@ -70,6 +69,14 @@ public class AdminController {
         )).toList();
     }
 
+    @GetMapping("/admin/dashboard")
+    public AdminDashboardDto dashboard(@RequestParam String date) {
+        return new AdminDashboardDto(
+                tableRepository.findAll(),
+                reservationsByDate(date)
+        );
+    }
+
     public record AdminReservationDto(
             Long id,
             String code,
@@ -83,8 +90,11 @@ public class AdminController {
             String customerPhone
     ) {}
 
-    // ====== Anuluj (najprościej: usuń z bazy po ID) ======
-    // DELETE /api/admin/reservations/123
+    public record AdminDashboardDto(
+            List<RestaurantTable> tables,
+            List<AdminReservationDto> reservations
+    ) {}
+
     @DeleteMapping("/admin/reservations/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteReservation(@PathVariable Long id) {

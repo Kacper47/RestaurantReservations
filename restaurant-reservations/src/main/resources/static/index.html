@@ -1,39 +1,52 @@
 <!doctype html>
-<html lang="pl">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Rezerwacje – start</title>
+  <title>Start</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <main class="container">
     <header class="header">
-      <h1>System rezerwacji restauracji</h1>
-      <p class="muted">Wybierz czynność:</p>
+      <h1>Restaurant Reservation System</h1>
+      <p class="muted">Choose how you want to enter the application.</p>
     </header>
 
-    <section class="grid3">
-      <a class="card linkcard" href="/admin.html">
-        <h2>Panel administratora</h2>
-        <p>Tylko dla obsługi</p>
+    <section class="grid2">
+      <a class="card linkcard roleCard" href="/guest.html">
+        <h2>Guest</h2>
+        <p>Go to the customer view and choose an action.</p>
       </a>
 
-      <a class="card linkcard" href="/edit.html">
-        <h2>Edytuj rezerwację</h2>
-        <p>Zmień opis, datę, odwołaj.</p>
-      </a>
+      <button id="openAdminLoginBtn" class="card linkcard roleCard roleButton" type="button">
+        <h2>Administrator</h2>
+        <p>Sign in using `code` and `name` from the `staff` table.</p>
+      </button>
+    </section>
 
-      <a class="card linkcard" href="/add.html">
-        <h2>Dodaj rezerwację</h2>
-        <p>Otwórz formularz dodawania rezerwacji.</p>
-      </a>
-
-      <a class="card linkcard" href="/reviews.html">
-        <h2>Dodaj opinię</h2>
-        <p>Wystaw ocenę i krótki opis, zobacz listę opinii.</p>
-      </a>
+    <section id="adminLoginPanel" class="card adminLoginCard hidden">
+      <h2>Administrator Sign In</h2>
+      <form id="adminEntryForm" class="form">
+        <div class="row">
+          <label>Code
+            <input id="adminCode" name="code" required placeholder="e.g. 1234" />
+          </label>
+          <label>Name
+            <input id="adminName" name="name" required placeholder="e.g. John" />
+          </label>
+          <div class="actions">
+            <button class="btn primary" type="submit">Sign In</button>
+          </div>
+        </div>
+      </form>
+      <div id="adminEntryMsg" class="result"></div>
     </section>
   </main>
+
+  <script src="core.js"></script>
+  <script src="public-pages.js"></script>
+  <script src="admin-page.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>

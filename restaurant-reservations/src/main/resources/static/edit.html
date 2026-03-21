@@ -1,86 +1,85 @@
 <!doctype html>
-<html lang="pl">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Edytuj rezerwację</title>
+  <title>Edit Reservation</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <main class="container">
     <nav class="topnav">
-      <a href="/" class="btn secondary">← Start</a>
-      <span class="muted">Edytuj rezerwację</span>
+      <a href="/guest.html" class="btn secondary">Back</a>
+      <span class="muted">Edit Reservation</span>
     </nav>
 
     <section class="card">
-      <h2>Znajdź rezerwację</h2>
+      <h2>Find Reservation</h2>
 
       <form id="lookupForm" class="form">
         <div class="row">
-          <label>Telefon
+          <label>Phone
             <input name="phone" required inputmode="numeric" maxlength="11" placeholder="123-456-789" />
           </label>
-          <label>Kod rezerwacji
+          <label>Reservation Code
             <input name="code" required placeholder="ABC123" />
           </label>
         </div>
 
-        <button class="btn primary" type="submit">Pokaż</button>
+        <button class="btn primary" type="submit">Show</button>
       </form>
 
       <div id="lookupResult" class="result"></div>
     </section>
 
     <section class="card" id="editCard" style="display:none;">
-      <h2>Edycja</h2>
-      <p class="muted">Zmień wybrane pola i zapisz. (Puste = bez zmian)</p>
+      <h2>Edit</h2>
+      <p class="muted">Update selected fields and save. (Empty = no change)</p>
 
       <form id="editForm" class="form">
         <div class="row">
-          <label>Nowa data
+          <label>New Date
             <div class="dateField">
               <input name="date" id="editDate" type="date" />
-              <button type="button" class="datePickerBtn" data-date-target="editDate" aria-label="Wybierz datę">📅</button>
+              <button type="button" class="datePickerBtn" data-date-target="editDate" aria-label="Choose date">Date</button>
             </div>
           </label>
-          <label>Nowa godzina
-            <input name="time" id="editTime" type="time" />
+          <label>New Time
+            <input name="time" id="editTime" type="time" step="900" />
           </label>
         </div>
 
         <div class="row">
-          <label>Nowa liczba osób
+          <label>New Guests
             <input name="guests" id="editGuests" type="number" min="1" max="10" />
           </label>
-          <label>Nowy stolik
+          <label>New Table
             <select name="tableId" id="editTableSelect"></select>
           </label>
         </div>
 
         <div class="row">
-          <label>Typ spotkania
-            <input name="meetingType" placeholder="np. urodziny / biznes / randka" />
+          <label>Meeting Type
+            <input name="meetingType" placeholder="e.g. birthday / business / date" />
           </label>
-          <label>Opis / dodatkowe informacje
-            <input name="description" maxlength="500" placeholder="np. krzesełko dla dziecka, alergie..." />
+          <label>Description / Additional Info
+            <input name="description" maxlength="500" placeholder="e.g. child seat, allergies..." />
           </label>
         </div>
 
-      
-        <button class="btn primary" type="submit">Zapisz zmiany</button>
+        <button class="btn primary" type="submit">Save Changes</button>
         <button id="cancelBtn" class="btn danger" type="button" style="margin-top:12px;">
-          Odwołaj rezerwację
+          Cancel Reservation
         </button>
       </form>
-
-      
-      
 
       <div id="editResult" class="result"></div>
     </section>
   </main>
 
+  <script src="core.js"></script>
+  <script src="public-pages.js"></script>
+  <script src="admin-page.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

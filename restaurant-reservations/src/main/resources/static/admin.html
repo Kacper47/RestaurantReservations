@@ -1,55 +1,44 @@
 <!doctype html>
-<html lang="pl">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Panel obsługi</title>
+  <title>Administrator Panel</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <main class="container">
     <nav class="topnav">
-      <a href="/" class="btn secondary">← Start</a>
-      <span class="muted">Panel obsługi</span>
+      <a href="/guest.html" class="btn secondary">Back</a>
+      <span class="muted">Administrator Panel</span>
+      <span id="accountBadge" class="accountBadge hidden"></span>
     </nav>
 
     <section class="card">
-      <h2>Logowanie obsługi</h2>
-      <form id="adminLoginForm" class="form">
-        <div class="row">
-          <label>Hasło administratora
-            <input id="adminPass" type="password" placeholder="admin123" required />
-          </label>
-          <label>Data
-            <input id="adminDate" type="date" required />
-          </label>
+      <div class="row headerRow">
+        <h2>Table Plan</h2>
+        <div class="actions">
+          <button id="prevDayBtn" class="btn secondary" type="button">&lt;</button>
+          <input id="adminDate" type="date" required />
+          <button id="nextDayBtn" class="btn secondary" type="button">&gt;</button>
         </div>
-
-        <div class="row">
-          <div class="actions">
-            <button class="btn primary" type="submit">Załaduj dane</button>
-          </div>
-        </div>
-      </form>
-
+      </div>
       <div id="adminMsg" class="result"></div>
-    </section>
-
-    <section class="card">
-      <h2>Stoliki</h2>
-      <div id="tablesGrid" class="tablesGrid"></div>
-      <p class="muted">Kliknij stolik, żeby przefiltrować listę rezerwacji.</p>
+      <div id="tablesGrid" class="tablesGrid tablePlan"></div>
+      <p class="muted">Click a table to filter. Click the same table again to clear the filter.</p>
     </section>
 
     <section class="card">
       <div class="row headerRow">
-        <h2>Rezerwacje</h2>
-        <button class="btn secondary" id="clearFilterBtn" type="button">Wyczyść filtr stolika</button>
+        <h2>Reservations for the Day</h2>
       </div>
       <div id="reservationsList" class="list"></div>
     </section>
   </main>
 
+  <script src="core.js"></script>
+  <script src="public-pages.js"></script>
+  <script src="admin-page.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
